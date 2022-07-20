@@ -2,6 +2,37 @@ class Utils {
     static getRandomNum(min = 0, max = 10){
         return Math.random() * (max - min) + min;
     }
+
+    static getDistance(object1, object2){
+        let x1 = object1.x,
+            y1 = object1.y,
+            x2 = object2.x,
+            y2 = object2.y;
+
+        let a = y1 - y2,
+            b = x1 - x2;    
+
+        return Math.sqrt((a*a) + (b*b));
+    }
+
+    static isRectIntersects(object1, object2){
+        let x1 = object1.x,
+            y1 = object1.y,
+            w1 = object1.width,
+            h1 = object1.height,
+
+            x2 = object2.x,
+            y2 = object2.y,
+            w2 = object2.width,
+            h2 = object2.height;
+
+            // console.log(y1, x1, x2, y2);
+
+        return y1 + h1 > y2 // нижняя часть блока выше y второго объекта
+            && x1 + w1 > x2 // правая часть блока правее x второго объекта
+            && x1 < x2 + w2 // но в то же врем х блока левее лево части второго объекта
+            && y1 < y2 + h2; // и в то же время у блока выше нижней части блока
+    }
 }
 
 class UI {
@@ -11,11 +42,12 @@ class UI {
             y: document.querySelector("#dev_hud").children[0],
             velocity: document.querySelector("#dev_hud").children[1],
             flyState: document.querySelector("#dev_hud").children[2],
+            score: document.querySelector("#dev_hud").children[3],
         }
     }
 
     update(type, prop, value){
-        this[type][prop].innerHTML = prop +": "+ Number(value).toFixed(2);
+        this[type][prop].innerHTML = prop +": "+ value;
     }
 }
 
@@ -29,6 +61,8 @@ class World{
 
         this.barrierDistance = 200;
 
+        this.barriersAmount = 1;
+
         this.gravity = gravity;
         this.speed = speed;
 
@@ -38,10 +72,15 @@ class World{
         this.render = this.render.bind(this);
     }
 
+    getAllBarriers(){
+        return this.children.filter(item => {
+            return item.constructor.name !== "Bird";
+        });
+    }
 
     generateWorldBarriers(){
         let barriers = [];
-        for(let i = 0; i < 2; i++){
+        for(let i = 0; i < this.barriersAmount; i++){
             let height = Utils.getRandomNum(3, 10),
                 x_offset = Utils.getRandomNum(70, 100),
                 y_offest = Utils.getRandomNum(9, 27) * 10,
@@ -77,18 +116,22 @@ class World{
         this.context.fill();
 
         this.children.forEach(object => {
-            // gravity impact
-            if(object.mobile){
-                if(object.vy >= 10) object.vy = 10;
-                object.fall();
-
-
-            HUD.update("dev", "y", object.y);
-            HUD.update("dev", "velocity", object.vy);
-            HUD.update("dev", "flyState", object.flyState);
-
+            if(!this.stop){
+                if(object.mobile){
+                    if(object.vy >= 10) object.vy = 10;
+                    object.fall();
+                    object.checkDistances();
+    
+    
+                HUD.update("dev", "y", Number(object.y).toFixed(2));
+                HUD.update("dev", "velocity",  Number(object.vy).toFixed(2));
+                HUD.update("dev", "flyState",  object.flyState);
+    
+                } else{
+                    object.move();
+                }
             } else {
-                object.move();
+                HUD.update("dev", "score", "Game over");
             }
 
             object.render();
@@ -108,10 +151,13 @@ class WorldObject{
         this.vx = 0;
         this.vy = 0;
 
+        this.stop = false;
+
         this.width = width;
         this.height = height;
 
         this.mobile = mobile;
+        this.freeze = false;
 
         this.body = body;
         this.belongsToWorld = null;
@@ -208,6 +254,19 @@ class Bird extends WorldObject{
         }
     }
 
+    checkDistances(){
+        let barriers = this.belongsToWorld.getAllBarriers();
+
+        barriers.forEach(barrier => {
+            // console.log(Utils.getDistance(barrier, this));
+            if(Utils.isRectIntersects(this, barrier)) {
+                this.belongsToWorld.stop = true;
+            }
+        });
+
+        
+    }
+
     centrize(){
         this.x = BlySky.width / 2 - (this.width / 2);
         this.y  = BlySky.height / 2 - (this.height / 2);
@@ -240,6 +299,10 @@ document.addEventListener("click", function(){
 document.addEventListener("keydown", function(event){
     if(event.key == " ") RedBlock.fly();    
 });
+
+// document.addEventListener("mousemove", function(event){
+//     RedBlock.y = event.clientY;
+// })
 
 
 
