@@ -51,6 +51,8 @@ class World{
 
         this.speed = speed;
 
+        this.score = 0;
+
         this.width = this.canvas.width;
         this.height = this.canvas.height;
 
@@ -105,7 +107,7 @@ class World{
                 if(object.mobile){
                     if(object.vy >= 10) object.vy = 10;
                     object.fall();
-                    object.checkDistances();
+                    object.checkInteractions();
     
     
                 HUD.update("dev", "y", Number(object.y).toFixed(2));
@@ -226,7 +228,7 @@ class Bird extends WorldObject{
 
 
     fly(){
-        let n = (20 / this.flyState);
+        let n = (40 / this.flyState);
         this.vy = (Math.abs(this.vy) * - 1) * n;
 
         if(this.vy <= -10)  this.vy = -10;
@@ -238,12 +240,19 @@ class Bird extends WorldObject{
         }
     }
 
-    checkDistances(){
+    checkInteractions(){
         let barriers = this.worldRef.getAllBarriers();
 
         barriers.forEach(barrier => {
             if(Utils.isRectIntersects(this, barrier)) {
                 this.worldRef.stop = true;
+            }
+
+            //score counting
+            if(this.x == (barrier.x + barrier.width) - 1){
+                this.worldRef.score+= 0.5; // 0.5 for each barrier (top and bottom :) )
+                HUD.update("dev", "score", this.worldRef.score);
+
             }
         });
 
