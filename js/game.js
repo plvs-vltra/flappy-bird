@@ -3,18 +3,6 @@ class Utils {
         return Math.random() * (max - min) + min;
     }
 
-    static getDistance(object1, object2){
-        let x1 = object1.x,
-            y1 = object1.y,
-            x2 = object2.x,
-            y2 = object2.y;
-
-        let a = y1 - y2,
-            b = x1 - x2;    
-
-        return Math.sqrt((a*a) + (b*b));
-    }
-
     static isRectIntersects(object1, object2){
         let x1 = object1.x,
             y1 = object1.y,
@@ -26,12 +14,11 @@ class Utils {
             w2 = object2.width,
             h2 = object2.height;
 
-            // console.log(y1, x1, x2, y2);
 
-        return y1 + h1 > y2 // нижняя часть блока выше y второго объекта
-            && x1 + w1 > x2 // правая часть блока правее x второго объекта
-            && x1 < x2 + w2 // но в то же врем х блока левее лево части второго объекта
-            && y1 < y2 + h2; // и в то же время у блока выше нижней части блока
+        return y1 + h1 > y2 
+            && x1 + w1 > x2 
+            && x1 < x2 + w2 
+            && y1 < y2 + h2;
     }
 }
 
@@ -52,7 +39,7 @@ class UI {
 }
 
 class World{
-    constructor({ background  = "black", gravity = 3, speed = 2}){
+    constructor({ background  = "black", speed = 2}){
         this.canvas = document.querySelector("#screen");
         this.context = this.canvas.getContext('2d');
         this.background = background;
@@ -60,10 +47,8 @@ class World{
         this.children = [];
 
         this.barrierDistance = 200;
-
         this.barriersAmount = 1;
 
-        this.gravity = gravity;
         this.speed = speed;
 
         this.width = this.canvas.width;
@@ -157,15 +142,14 @@ class WorldObject{
         this.height = height;
 
         this.mobile = mobile;
-        this.freeze = false;
 
         this.body = body;
-        this.belongsToWorld = null;
+        this.worldRef = null;
     }
 
     addToWorld(worldRef){
         worldRef.children.unshift(this);
-        this.belongsToWorld = worldRef;
+        this.worldRef = worldRef;
     }
     
     moveTo(x, y){
@@ -174,7 +158,7 @@ class WorldObject{
     }
     
     fall(){
-        if(this.belongsToWorld){
+        if(this.worldRef){
             this.vy += 1;
             this.y += this.vy;
         }
@@ -186,7 +170,7 @@ class WorldObject{
     }
 
     render(){
-        let context = this.belongsToWorld.context;
+        let context = this.worldRef.context;
 
         context.fillStyle = this.body;
         context.fillRect(this.x, this.y, this.width, this.height);
@@ -204,9 +188,9 @@ class Tube extends WorldObject{
     }
 
     move(){
-        this.x = this.x - this.belongsToWorld.speed;
+        this.x = this.x - this.worldRef.speed;
 
-        if(this.isTubeOverScreen()) this.x = this.belongsToWorld.width;
+        if(this.isTubeOverScreen()) this.x = this.worldRef.width;
     }
 
     isTubeOverScreen(){
@@ -230,14 +214,14 @@ class Bird extends WorldObject{
     }
 
     reset(){
-        if(this.belongsToWorld){
-            this.x = this.belongsToWorld.width / 2 - (this.width / 2);
-            this.y = this.belongsToWorld.height / 2 - (this.width / 2);
+        if(this.worldRef){
+            this.x = this.worldRef.width / 2 - (this.width / 2);
+            this.y = this.worldRef.height / 2 - (this.width / 2);
         }
     }
 
     isOverScreen(){
-        return this.y + this.height > this.belongsToWorld.height;
+        return this.y + this.height > this.worldRef.height;
     }
 
 
@@ -255,12 +239,11 @@ class Bird extends WorldObject{
     }
 
     checkDistances(){
-        let barriers = this.belongsToWorld.getAllBarriers();
+        let barriers = this.worldRef.getAllBarriers();
 
         barriers.forEach(barrier => {
-            // console.log(Utils.getDistance(barrier, this));
             if(Utils.isRectIntersects(this, barrier)) {
-                this.belongsToWorld.stop = true;
+                this.worldRef.stop = true;
             }
         });
 
@@ -299,11 +282,6 @@ document.addEventListener("click", function(){
 document.addEventListener("keydown", function(event){
     if(event.key == " ") RedBlock.fly();    
 });
-
-// document.addEventListener("mousemove", function(event){
-//     RedBlock.y = event.clientY;
-// })
-
 
 
 console.log(BlySky)
